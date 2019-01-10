@@ -1,0 +1,9 @@
+CMakeCache.txt
+CMakeFiles/
+*.o
+fdupes
+fdupes-debug/
+cmake_install.cmake
+
+.git/
+.idea/
