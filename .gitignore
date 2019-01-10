@@ -6,6 +6,7 @@ Makefile
 moc_*
 fdupes.pro.*
 fdupes_automoc.cpp
+ui_mainwindow.h
 
 fdupes
 fdupes-debug/
