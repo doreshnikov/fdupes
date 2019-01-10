@@ -1,7 +1,11 @@
 CMakeCache.txt
 CMakeFiles/
+
 *.o
 moc_*
+fdupes.pro.*
+fdupes_automoc.cpp
+
 fdupes
 fdupes-debug/
 cmake_install.cmake
