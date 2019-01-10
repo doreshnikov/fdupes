@@ -1,4 +1,0 @@
-/home/amathael/fdupes/CMakeFiles/edit_cache.dir
-/home/amathael/fdupes/CMakeFiles/rebuild_cache.dir
-/home/amathael/fdupes/CMakeFiles/fdupes.dir
-/home/amathael/fdupes/CMakeFiles/fdupes_automoc.dir

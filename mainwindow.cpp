@@ -29,6 +29,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 }
 
 void MainWindow::selectDirectory() {
+    qDebug() << "Interrupted\n";
     _dir = QFileDialog::getExistingDirectory(this, "Please select a directory", QString(), QFileDialog::ShowDirsOnly);
     ui->plainTextEdit->clear();
     ui->plainTextEdit->appendPlainText(QString("Counting files in directory: "));
@@ -91,7 +92,7 @@ void MainWindow::recieveProgress(const QString &file_name) {
 }
 
 void MainWindow::recieveDuplicateFile(QString const &origin, QString const &duplicate) {
-    qDebug() << origin << ' ' << duplicate << '\n';
+//    qDebug() << origin << ' ' << duplicate << '\n';
     QTreeWidgetItem *new_item = new QTreeWidgetItem(ui->treeWidget);
     new_item->setExpanded(true);
     new_item->setText(0, "found");

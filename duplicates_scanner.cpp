@@ -29,7 +29,7 @@ void duplicates_scanner::startScanning() {
         }
         hasher.addData(&file);
         QByteArray hash = hasher.result();
-        qDebug() << hash;
+//        qDebug() << hash;
         if (origins.contains(hash)) {
             emit onDuplicateFound(origins[hash], file_path);
         } else {
