@@ -10,12 +10,16 @@
 #include <QFileInfo>
 #include <QFileInfoList>
 
+#include <QtWidgets>
+
 namespace Ui {
     class MainWindow;
 }
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
+
+    void interruptWorker();
 
 public:
 
@@ -27,6 +31,7 @@ private slots:
     void changeCheckMode(int);
 
     void selectDirectory();
+    void startScanning();
     void showAboutDialog();
 
     void onCounted(int, qint64);
@@ -41,21 +46,12 @@ private:
         HashAndQuadratic,
     };
 
-    enum Status {
-        Init,
-        Count,
-        Scan,
-        Ready,
-        Interrupt,
-    };
-
     std::unique_ptr<Ui::MainWindow> ui;
     QString _dir;
-    QMap<QFileInfo, QFileInfoList> _duplicates;
-    QThread _worker;
+    QMap<QString, QPair<qint64, QTreeWidgetItem *>> _duplicates;
+    QThread *_workerThread;
 
     CheckMode _check_mode;
-    Status _status;
 
 };
 

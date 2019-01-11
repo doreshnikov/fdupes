@@ -11,14 +11,20 @@
 
 #include <QtDebug>
 
-MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWindow), _dir(), _duplicates(), _worker(), _check_mode(CheckMode::Hash) {
+MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWindow), _dir(), _duplicates(), _workerThread(nullptr), _check_mode(CheckMode::Hash) {
     ui->setupUi(this);
     setGeometry(QStyle::alignedRect(Qt::LeftToRight, Qt::AlignCenter, size(), qApp->desktop()->availableGeometry()));
     ui->plainTextEdit->setReadOnly(true);
     ui->progressBar->reset();
+    this->statusBar()->setSizeGripEnabled(false);
 
     QCommonStyle style;
     ui->action_About->setIcon(style.standardIcon(QCommonStyle::SP_DialogHelpButton));
+
+    ui->treeWidget->header()->setSectionResizeMode(0, QHeaderView::Interactive);
+//    ui->treeWidget->setColumnWidth(1, 100);
+//    ui->treeWidget->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
+//    ui->treeWidget->setAnimated(false);
 
     connect(ui->action_Select_Directory, &QAction::triggered,
             this, &MainWindow::selectDirectory);
@@ -28,27 +34,35 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
             this, &MainWindow::showAboutDialog);
 }
 
+void MainWindow::interruptWorker() {
+    if (_workerThread != nullptr) {
+        _workerThread->requestInterruption();
+        _workerThread->wait();
+        _workerThread->deleteLater();
+    }
+    delete _workerThread;
+}
+
 void MainWindow::selectDirectory() {
-    qDebug() << "Interrupted\n";
     _dir = QFileDialog::getExistingDirectory(this, "Please select a directory", QString(), QFileDialog::ShowDirsOnly);
     ui->plainTextEdit->clear();
     ui->plainTextEdit->appendPlainText(QString("Counting files in directory: "));
     ui->treeWidget->clear();
     ui->progressBar->reset();
 
-    _worker.requestInterruption();
-    _worker.quit();
+    interruptWorker();
+    _workerThread = new QThread();
 
     file_counter *counter = new file_counter(_dir);
-    counter->moveToThread(&_worker);
-    connect(&_worker, &QThread::started,
+    counter->moveToThread(_workerThread);
+    connect(_workerThread, &QThread::started,
             counter, &file_counter::startCounting);
     connect(counter, &file_counter::onComplete,
             this, &MainWindow::onCounted);
-    connect(&_worker, &QThread::finished,
+    connect(_workerThread, &QThread::finished,
             counter, &QObject::deleteLater);
 
-    _worker.start();
+    _workerThread->start();
 }
 
 void MainWindow::showAboutDialog() {
@@ -64,26 +78,30 @@ void MainWindow::changeCheckMode(int tick) {
 }
 
 void MainWindow::onCounted(int amount, qint64 size) {
-    ui->plainTextEdit->appendPlainText(QString("%1\nActual size:\n%2").arg(amount).arg(size));
+    ui->plainTextEdit->appendPlainText(QString("%1\nActual size:\n%2B").arg(amount).arg(size));
     ui->progressBar->setValue(0);
     ui->progressBar->setMaximum(amount);
     ui->button_Start_Scanning->setDisabled(false);
 
-    _worker.quit();
+    interruptWorker();
+    _workerThread = new QThread();
 
     duplicates_scanner *scanner = new duplicates_scanner(_dir);
-    scanner->moveToThread(&_worker);
-    _worker.start();
+    scanner->moveToThread(_workerThread);
     connect(ui->button_Start_Scanning, &QPushButton::clicked,
+            this, &MainWindow::startScanning);
+    connect(_workerThread, &QThread::started,
             scanner, &duplicates_scanner::startScanning);
     connect(scanner, &duplicates_scanner::onFileProcessed,
             this, &MainWindow::recieveProgress);
     connect(scanner, &duplicates_scanner::onDuplicateFound,
             this, &MainWindow::recieveDuplicateFile);
-    connect(&_worker, &QThread::finished,
+    connect(_workerThread, &QThread::finished,
             scanner, &QObject::deleteLater);
+}
 
-    _worker.start();
+void MainWindow::startScanning() {
+    _workerThread->start();
 }
 
 void MainWindow::recieveProgress(const QString &file_name) {
@@ -92,16 +110,22 @@ void MainWindow::recieveProgress(const QString &file_name) {
 }
 
 void MainWindow::recieveDuplicateFile(QString const &origin, QString const &duplicate) {
-//    qDebug() << origin << ' ' << duplicate << '\n';
-    QTreeWidgetItem *new_item = new QTreeWidgetItem(ui->treeWidget);
-    new_item->setExpanded(true);
-    new_item->setText(0, "found");
-    new_item->setText(1, "size");
+    if (_duplicates.count(origin) == 0) {
+        QTreeWidgetItem *new_item = new QTreeWidgetItem(ui->treeWidget);
+        new_item->setExpanded(true);
+        new_item->setText(0, origin);
+        new_item->setText(1, "1");
+        _duplicates[origin] = qMakePair(1, new_item);
+        ui->treeWidget->addTopLevelItem(new_item);
+    }
 
-    QTreeWidgetItem *item = new QTreeWidgetItem(new_item);
-    item->setText(0, origin);
-    item->setText(1, duplicate);
-    ui->treeWidget->addTopLevelItem(item);
+    auto &origin_item = _duplicates[origin];
+
+    QTreeWidgetItem *item = new QTreeWidgetItem(origin_item.second);
+    item->setText(0, duplicate);
+    origin_item.second->setText(1, QString::number(++origin_item.first));
 }
 
-MainWindow::~MainWindow() {}
+MainWindow::~MainWindow() {
+    interruptWorker();
+}

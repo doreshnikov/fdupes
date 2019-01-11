@@ -3,6 +3,8 @@
 #include <QDirIterator>
 #include <QThread>
 
+#include <QtDebug>
+
 file_counter::file_counter(QString const &dir) : _root(dir) {}
 
 file_counter::~file_counter() {}

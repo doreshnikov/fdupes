@@ -17,19 +17,23 @@ void duplicates_scanner::startScanning() {
     QHash<QByteArray, QString> origins;
 
     while (it.hasNext()) {
-        if (QThread::currentThread()->isInterruptionRequested()) { break; }
+        if (QThread::currentThread()->isInterruptionRequested()) {
+            break;
+        }
         QString file_path = it.next();
         emit onFileProcessed(file_path);
 
+        QFile file(file_path);
+        if (file.size() == 0) {
+            continue;
+        }
         QCryptographicHash hasher(QCryptographicHash::Md5);
         hasher.reset();
-        QFile file(file_path);
         if (!file.open(QFile::ReadOnly)) {
             continue;
         }
         hasher.addData(&file);
         QByteArray hash = hasher.result();
-//        qDebug() << hash;
         if (origins.contains(hash)) {
             emit onDuplicateFound(origins[hash], file_path);
         } else {
@@ -37,5 +41,6 @@ void duplicates_scanner::startScanning() {
         }
     }
 
+    emit onComplete();
     QThread::currentThread()->quit();
 }

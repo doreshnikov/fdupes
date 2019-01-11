@@ -17,7 +17,7 @@ signals:
 
     void onFileProcessed(QString const &);
     void onDuplicateFound(QString const &, QString const &);
-    void onScanComplete();
+    void onComplete();
 
 public slots:
 
