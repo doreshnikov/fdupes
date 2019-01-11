@@ -1,8 +1,6 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-#include "mainwindow_status.h"
-
 #include <memory>
 #include <QMainWindow>
 #include <QMap>

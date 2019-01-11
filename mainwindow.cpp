@@ -21,10 +21,10 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     QCommonStyle style;
     ui->action_About->setIcon(style.standardIcon(QCommonStyle::SP_DialogHelpButton));
 
-    ui->treeWidget->header()->setSectionResizeMode(0, QHeaderView::Interactive);
+    ui->treeWidget->header()->setSectionResizeMode(0, QHeaderView::Stretch);
 //    ui->treeWidget->setColumnWidth(1, 100);
-//    ui->treeWidget->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
-//    ui->treeWidget->setAnimated(false);
+    ui->treeWidget->setSelectionMode(QAbstractItemView::ExtendedSelection);
+    ui->treeWidget->setUniformRowHeights(true);
 
     connect(ui->action_Select_Directory, &QAction::triggered,
             this, &MainWindow::selectDirectory);
@@ -113,17 +113,20 @@ void MainWindow::recieveDuplicateFile(QString const &origin, QString const &dupl
     if (_duplicates.count(origin) == 0) {
         QTreeWidgetItem *new_item = new QTreeWidgetItem(ui->treeWidget);
         new_item->setExpanded(true);
-        new_item->setText(0, origin);
-        new_item->setText(1, "1");
+        new_item->setText(0, "1");
+        new_item->setText(1, QString::number(QFile(origin).size()) + "B");
         _duplicates[origin] = qMakePair(1, new_item);
         ui->treeWidget->addTopLevelItem(new_item);
+
+        QTreeWidgetItem *item = new QTreeWidgetItem(new_item);
+        item->setText(0, origin);
     }
 
     auto &origin_item = _duplicates[origin];
 
     QTreeWidgetItem *item = new QTreeWidgetItem(origin_item.second);
     item->setText(0, duplicate);
-    origin_item.second->setText(1, QString::number(++origin_item.first));
+    origin_item.second->setText(0, QString::number(++origin_item.first));
 }
 
 MainWindow::~MainWindow() {

@@ -10,6 +10,7 @@ ui_mainwindow.h
 
 fdupes
 fdupes-debug/
+fdupes_autogen/
 cmake_install.cmake
 
 .git/

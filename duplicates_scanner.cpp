@@ -13,9 +13,17 @@ duplicates_scanner::duplicates_scanner(QString const &dir) : _root(dir) {}
 duplicates_scanner::~duplicates_scanner() {}
 
 void duplicates_scanner::startScanning() {
-    QDirIterator it(_root.absolutePath(), QDir::Hidden | QDir::NoDotAndDotDot | QDir::Files, QDirIterator::Subdirectories);
     QHash<QByteArray, QString> origins;
+    QHash<qint64, qint64> count_by_size;
 
+    {
+        QDirIterator it(_root.absolutePath(), QDir::Hidden | QDir::NoDotAndDotDot | QDir::Files, QDirIterator::Subdirectories);
+        while (it.hasNext()) {
+            qint64 file_size = QFile(it.next()).size();
+            count_by_size[file_size]++;
+        }
+    }
+    QDirIterator it(_root.absolutePath(), QDir::Hidden | QDir::NoDotAndDotDot | QDir::Files, QDirIterator::Subdirectories);
     while (it.hasNext()) {
         if (QThread::currentThread()->isInterruptionRequested()) {
             break;
@@ -24,7 +32,7 @@ void duplicates_scanner::startScanning() {
         emit onFileProcessed(file_path);
 
         QFile file(file_path);
-        if (file.size() == 0) {
+        if (file.size() == 0 || count_by_size[file.size()] < 2) {
             continue;
         }
         QCryptographicHash hasher(QCryptographicHash::Md5);
@@ -42,5 +50,6 @@ void duplicates_scanner::startScanning() {
     }
 
     emit onComplete();
+
     QThread::currentThread()->quit();
 }
