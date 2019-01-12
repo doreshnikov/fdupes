@@ -26,9 +26,9 @@ bool duplicates_scanner::files_are_equal(const QString &origin, const QString &o
         if (QThread::currentThread()->isInterruptionRequested()) {
             return false;
         }
-        qint64 amount = f1.read(buffer1, 256);
+        f1.read(buffer1, 256);
         f2.read(buffer2, 256);
-        if (!memcmp(buffer1, buffer2, amount)) {
+        if (!strcmp(buffer1, buffer2)) {
             return false;
         }
     }
@@ -74,6 +74,7 @@ void duplicates_scanner::startScanning() {
             }
 
             QByteArray hash;
+            hash.fill(0, 256);
             file.read(hash.begin(), 256);
             file.close();
 

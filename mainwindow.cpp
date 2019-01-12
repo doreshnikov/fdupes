@@ -24,6 +24,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     ui->progressBar->reset();
     ui->button_Start_Scanning->setDisabled(true);
 
+    qRegisterMetaType<QVector<QString>>("QVector<QString>");
+
     this->statusBar()->setSizeGripEnabled(false);
 
     QCommonStyle style;
@@ -178,7 +180,7 @@ bool MainWindow::deleteOneSelected(QString const &file_name, bool &request_confi
         return true;
     } else {
         receiveError(QString("can't delete file %1").arg(file_name));
-        return false;
+        return !yes;
     }
 }
 
