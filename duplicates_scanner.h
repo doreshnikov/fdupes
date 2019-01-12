@@ -13,10 +13,15 @@ public:
     explicit duplicates_scanner(QString const &);
     ~duplicates_scanner();
 
+    bool files_are_equal(QString const &, QString const &);
+
 signals:
 
     void onFileProcessed(QString const &);
-    void onDuplicateFound(QString const &, QString const &);
+    void onDuplicatesBucketFound(QVector<QString> const &);
+
+    void onError(QString const &);
+
     void onComplete();
 
 public slots:

@@ -36,7 +36,7 @@ private slots:
     void onCounted(int, qint64);
 
     void receiveProgress(QString const &);
-    void receiveDuplicateFile(QString const &, QString const &);
+    void receiveDuplicatesBucket(QVector<QString> const &);
     void receiveError(QString const &);
 
     void interruptWorker();

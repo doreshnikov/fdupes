@@ -20,8 +20,6 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     ui->plainTextEdit_Error->setReadOnly(true);
     ui->plainTextEdit_Error->setStyleSheet("QPlainTextEdit {"
                                            "    color: red;"
-                                           "    backgroud-color: black;"
-                                           "    font-weight: bold;"
                                            "}");
     ui->progressBar->reset();
     ui->button_Start_Scanning->setDisabled(true);
@@ -63,6 +61,7 @@ void MainWindow::selectDirectory() {
 
     ui->plainTextEdit->clear();
     ui->plainTextEdit->appendPlainText(QString("Counting files in directory: "));
+    ui->plainTextEdit_Error->clear();
     ui->treeWidget->clear();
     ui->progressBar->reset();
 
@@ -110,13 +109,15 @@ void MainWindow::startScanning() {
             scanner, &duplicates_scanner::startScanning);
     connect(scanner, &duplicates_scanner::onFileProcessed,
             this, &MainWindow::receiveProgress);
-    connect(scanner, &duplicates_scanner::onDuplicateFound,
-            this, &MainWindow::receiveDuplicateFile);
+    connect(scanner, &duplicates_scanner::onDuplicatesBucketFound,
+            this, &MainWindow::receiveDuplicatesBucket);
     connect(_workerThread, &QThread::finished,
             scanner, &QObject::deleteLater);
 
     connect(_workerThread, &QThread::finished,
             this, &MainWindow::stopScanning);
+    connect(scanner, &duplicates_scanner::onError,
+            this, &MainWindow::receiveError);
 
     _workerThread->start();
 
@@ -141,28 +142,24 @@ void MainWindow::receiveProgress(const QString &file_name) {
     ui->progressBar->setValue(ui->progressBar->value() + 1);
 }
 
-void MainWindow::receiveDuplicateFile(QString const &origin, QString const &duplicate) {
-    if (_duplicates.count(origin) == 0) {
-        QTreeWidgetItem *new_item = new QTreeWidgetItem(ui->treeWidget);
-        new_item->setExpanded(true);
-        new_item->setText(0, QString("%1 duplicates").arg(1));
-        new_item->setText(1, QString::number(QFile(origin).size()) + "B");
-
-        _duplicates[origin] = new_item;
-        _duplicates_count[origin] = 1;
-        QTreeWidgetItem *item = new QTreeWidgetItem(new_item);
-        item->setText(0, origin);
+void MainWindow::receiveDuplicatesBucket(QVector<QString> const &bucket) {
+    if (bucket.size() < 2) {
+        return;
     }
 
-    auto origin_item = _duplicates[origin];
+    QTreeWidgetItem *new_item = new QTreeWidgetItem(ui->treeWidget);
+    new_item->setExpanded(true);
+    new_item->setText(0, QString("%1 duplicates").arg(bucket.size()));
+    new_item->setText(1, QString::number(QFile(bucket[0]).size()) + "B");
 
-    QTreeWidgetItem *item = new QTreeWidgetItem(origin_item);
-    item->setText(0, duplicate);
-    origin_item->setText(0, QString("%1 duplicates").arg(++_duplicates_count[origin]));
+    for (auto const &file_name : bucket) {
+        QTreeWidgetItem *item = new QTreeWidgetItem(new_item);
+        item->setText(0, file_name);
+    }
 }
 
 void MainWindow::receiveError(QString const &error) {
-
+    ui->plainTextEdit_Error->appendHtml(error);
 }
 
 bool MainWindow::deleteOneSelected(QString const &file_name, bool &request_confirmation) {
@@ -177,7 +174,12 @@ bool MainWindow::deleteOneSelected(QString const &file_name, bool &request_confi
         }
     }
 
-    return yes && QFile(file_name).remove();
+    if (yes && QFile(file_name).remove()) {
+        return true;
+    } else {
+        receiveError(QString("can't delete file %1").arg(file_name));
+        return false;
+    }
 }
 
 void MainWindow::deleteSelected() {
