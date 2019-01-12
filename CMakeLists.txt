@@ -11,7 +11,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 
 find_package(Qt5Widgets REQUIRED)
 
-add_executable(fdupes main.cpp mainwindow.cpp file_counter.cpp duplicates_scanner.cpp)
+add_executable(fdupes main.cpp mainwindow.cpp file_counter.cpp duplicates_scanner.cpp duplicates_reciever.cpp)
 
 qt5_use_modules(fdupes Widgets)
 include_directories("${PROJECT_SOURCE_DIR}/cmake-build-debug")

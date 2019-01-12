@@ -17,8 +17,6 @@ namespace Ui {
 class MainWindow : public QMainWindow {
     Q_OBJECT
 
-    void interruptWorker();
-
 public:
 
     explicit MainWindow(QWidget *parent = 0);
@@ -29,13 +27,18 @@ private slots:
     void changeCheckMode(int);
 
     void selectDirectory();
+    void deleteSelected();
     void startScanning();
+    void stopScanning();
+
     void showAboutDialog();
 
     void onCounted(int, qint64);
 
     void recieveProgress(QString const &);
     void recieveDuplicateFile(QString const &, QString const &);
+
+    void interruptWorker();
 
 private:
 
@@ -46,7 +49,9 @@ private:
 
     std::unique_ptr<Ui::MainWindow> ui;
     QString _dir;
-    QMap<QString, QPair<qint64, QTreeWidgetItem *>> _duplicates;
+    QMap<QString, QTreeWidgetItem *> _duplicates;
+    QMap<QString, qint64> _duplicates_count;
+
     QThread *_workerThread;
 
     CheckMode _check_mode;
