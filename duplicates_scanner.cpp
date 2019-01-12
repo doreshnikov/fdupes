@@ -35,7 +35,7 @@ void duplicates_scanner::startScanning() {
         if (file.size() == 0 || count_by_size[file.size()] < 2) {
             continue;
         }
-        QCryptographicHash hasher(QCryptographicHash::Md5);
+        QCryptographicHash hasher(QCryptographicHash::RealSha3_512);
         hasher.reset();
         if (!file.open(QFile::ReadOnly)) {
             continue;

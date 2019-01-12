@@ -124,6 +124,16 @@
       </layout>
      </widget>
     </item>
+    <item>
+     <widget class="QPlainTextEdit" name="plainTextEdit_Error">
+      <property name="maximumSize">
+       <size>
+        <width>16777215</width>
+        <height>60</height>
+       </size>
+      </property>
+     </widget>
+    </item>
    </layout>
   </widget>
   <widget class="QMenuBar" name="menuBar">
@@ -132,7 +142,7 @@
      <x>0</x>
      <y>0</y>
      <width>898</width>
-     <height>22</height>
+     <height>17</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">

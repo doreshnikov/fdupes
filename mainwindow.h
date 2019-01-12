@@ -17,6 +17,8 @@ namespace Ui {
 class MainWindow : public QMainWindow {
     Q_OBJECT
 
+    bool deleteOneSelected(QString const &, bool &);
+
 public:
 
     explicit MainWindow(QWidget *parent = 0);
@@ -33,8 +35,9 @@ private slots:
 
     void onCounted(int, qint64);
 
-    void recieveProgress(QString const &);
-    void recieveDuplicateFile(QString const &, QString const &);
+    void receiveProgress(QString const &);
+    void receiveDuplicateFile(QString const &, QString const &);
+    void receiveError(QString const &);
 
     void interruptWorker();
 
