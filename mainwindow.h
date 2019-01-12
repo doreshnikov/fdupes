@@ -24,8 +24,6 @@ public:
 
 private slots:
 
-    void changeCheckMode(int);
-
     void selectDirectory();
     void deleteSelected();
     void startScanning();
@@ -42,19 +40,12 @@ private slots:
 
 private:
 
-    enum CheckMode {
-        Hash,
-        HashAndQuadratic,
-    };
-
     std::unique_ptr<Ui::MainWindow> ui;
     QString _dir;
     QMap<QString, QTreeWidgetItem *> _duplicates;
     QMap<QString, qint64> _duplicates_count;
 
     QThread *_workerThread;
-
-    CheckMode _check_mode;
 
 };
 

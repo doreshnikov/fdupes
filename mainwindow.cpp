@@ -13,7 +13,7 @@
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWindow), _dir(),
                                           _duplicates(), _duplicates_count(),
-                                          _workerThread(nullptr), _check_mode(CheckMode::Hash) {
+                                          _workerThread(nullptr) {
     ui->setupUi(this);
     setGeometry(QStyle::alignedRect(Qt::LeftToRight, Qt::AlignCenter, size(), qApp->desktop()->availableGeometry()));
     ui->plainTextEdit->setReadOnly(true);
@@ -50,6 +50,9 @@ void MainWindow::interruptWorker() {
 
 void MainWindow::selectDirectory() {
     _dir = QFileDialog::getExistingDirectory(this, "Please select a directory", QString(), QFileDialog::ShowDirsOnly);
+    _duplicates.clear();
+    _duplicates_count.clear();
+
     ui->plainTextEdit->clear();
     ui->plainTextEdit->appendPlainText(QString("Counting files in directory: "));
     ui->treeWidget->clear();
@@ -72,14 +75,6 @@ void MainWindow::selectDirectory() {
 
 void MainWindow::showAboutDialog() {
     QMessageBox::about(this, "fdupes", "Files duplicates finder utility");
-}
-
-void MainWindow::changeCheckMode(int tick) {
-    if (tick) {
-        _check_mode = CheckMode::HashAndQuadratic;
-    } else {
-        _check_mode = CheckMode::Hash;
-    }
 }
 
 void MainWindow::onCounted(int amount, qint64 size) {
@@ -144,18 +139,17 @@ void MainWindow::recieveDuplicateFile(QString const &origin, QString const &dupl
 
         _duplicates[origin] = new_item;
         _duplicates_count[origin] = 1;
-        QTreeWidgetItem *item = new QTreeWidgetItem();
+        QTreeWidgetItem *item = new QTreeWidgetItem(new_item);
         item->setText(0, origin);
-        new_item->addChild(item);
+//        new_item->addChild(item);
 
-        ui->treeWidget->addTopLevelItem(new_item);
+//        ui->treeWidget->addTopLevelItem(new_item);
     }
 
     auto origin_item = _duplicates[origin];
 
-    QTreeWidgetItem *item = new QTreeWidgetItem();
+    QTreeWidgetItem *item = new QTreeWidgetItem(origin_item);
     item->setText(0, duplicate);
-    origin_item->addChild(item);
     origin_item->setText(0, QString("%1 duplicates").arg(++_duplicates_count[origin]));
 }
 

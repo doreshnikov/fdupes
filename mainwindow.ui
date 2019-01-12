@@ -97,13 +97,6 @@
       </property>
       <layout class="QHBoxLayout" name="horizontalLayout_2">
        <item>
-        <widget class="QCheckBox" name="check_Quadratic">
-         <property name="text">
-          <string>Quadratic</string>
-         </property>
-        </widget>
-       </item>
-       <item>
         <widget class="QPushButton" name="button_Start_Scanning">
          <property name="text">
           <string>Start scanning</string>
