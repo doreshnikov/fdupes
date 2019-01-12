@@ -18,9 +18,12 @@ void file_counter::startCounting() {
         if (QThread::currentThread()->isInterruptionRequested()) {
             break;
         }
-        amount++;
-        size += it.fileInfo().size();
-        it.next();
+        QFileInfo file_info(it.next());
+
+        if (file_info.isFile()) {
+            size += file_info.size();
+            amount++;
+        }
     }
 
     emit onComplete(amount, size);

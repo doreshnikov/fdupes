@@ -16,23 +16,27 @@ bool duplicates_scanner::files_are_equal(const QString &origin, const QString &o
     QFile f1(origin), f2(other);
     if (!f1.open(QFile::ReadOnly)) {
         emit onError(QString("can't open file %1 for comparison with %2").arg(origin).arg(other));
+        return false;
     }
     if (!f2.open(QFile::ReadOnly)) {
         emit onError(QString("can't open file %1 for comparison with %2").arg(other).arg(origin));
+        return false;
     }
 
-    char buffer1[256], buffer2[256];
+    QByteArray buffer1(256, 0), buffer2(256, 0);
     while (!f1.atEnd()) {
         if (QThread::currentThread()->isInterruptionRequested()) {
             return false;
         }
-        f1.read(buffer1, 256);
-        f2.read(buffer2, 256);
-        if (!strcmp(buffer1, buffer2)) {
+        f1.read(buffer1.data(), 256);
+        f2.read(buffer2.data(), 256);
+        if (buffer1 != buffer2) {
             return false;
         }
     }
 
+    f1.close();
+    f2.close();
     return true;
 }
 
@@ -42,12 +46,14 @@ void duplicates_scanner::startScanning() {
     {
         QDirIterator it(_root.absolutePath(), QDir::Hidden | QDir::NoDotAndDotDot | QDir::Files, QDirIterator::Subdirectories);
         while (it.hasNext()) {
-            QString file_name = it.next();
-            qint64 file_size = QFile(file_name).size();
-            if (!buckets_by_size.contains(file_size)) {
-                buckets_by_size[file_size] = QVector<QString>();
+            QFileInfo file_info(it.next());
+
+            if (file_info.isFile()) {
+                if (!buckets_by_size.contains(file_info.size())) {
+                    buckets_by_size[file_info.size()] = QVector<QString>();
+                }
+                buckets_by_size[file_info.size()].append(file_info.filePath());
             }
-            buckets_by_size[file_size].append(file_name);
         }
     }
 
@@ -73,9 +79,8 @@ void duplicates_scanner::startScanning() {
                 continue;
             }
 
-            QByteArray hash;
-            hash.fill(0, 256);
-            file.read(hash.begin(), 256);
+            QByteArray hash(256, 0);
+            file.read(hash.data(), 256);
             file.close();
 
             if (origins.contains(hash) && files_are_equal(origins[hash], file_name)) {
