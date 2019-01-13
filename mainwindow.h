@@ -41,10 +41,6 @@ private slots:
 
     void interruptWorker();
 
-protected:
-
-    void resizeEvent(QResizeEvent *event) override;
-
 private:
 
     std::unique_ptr<Ui::MainWindow> ui;

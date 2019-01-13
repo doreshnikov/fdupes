@@ -44,10 +44,6 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
             this, &MainWindow::showAboutDialog);
 }
 
-void MainWindow::resizeEvent(QResizeEvent *event) {
-    ui->centralWidget->repaint();
-}
-
 void MainWindow::interruptWorker() {
     if (_workerThread != nullptr) {
         if (_workerThread->isRunning()) {
