@@ -16,6 +16,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
                                           _workerThread(nullptr) {
     ui->setupUi(this);
     setGeometry(QStyle::alignedRect(Qt::LeftToRight, Qt::AlignCenter, size(), qApp->desktop()->availableGeometry()));
+
     ui->plainTextEdit->setReadOnly(true);
     ui->plainTextEdit_Error->setReadOnly(true);
     ui->plainTextEdit_Error->setStyleSheet("QPlainTextEdit {"
@@ -25,8 +26,6 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     ui->button_Start_Scanning->setDisabled(true);
 
     qRegisterMetaType<QVector<QString>>("QVector<QString>");
-
-    this->statusBar()->setSizeGripEnabled(false);
 
     QCommonStyle style;
     ui->action_About->setIcon(style.standardIcon(QCommonStyle::SP_DialogHelpButton));
@@ -43,6 +42,10 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
             this, &MainWindow::close);
     connect(ui->action_About, &QAction::triggered,
             this, &MainWindow::showAboutDialog);
+}
+
+void MainWindow::resizeEvent(QResizeEvent *event) {
+    ui->centralWidget->repaint();
 }
 
 void MainWindow::interruptWorker() {
