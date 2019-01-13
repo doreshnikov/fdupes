@@ -163,40 +163,36 @@ void MainWindow::receiveError(QString const &error) {
     ui->plainTextEdit_Error->appendHtml(error);
 }
 
-bool MainWindow::deleteOneSelected(QString const &file_name, bool &request_confirmation) {
-    bool yes = false || !request_confirmation;
-    if (request_confirmation) {
-        auto confirmation = QMessageBox::warning(this, "Delete", QString("Delete file %1?").arg(file_name), QMessageBox::YesAll | QMessageBox::Yes | QMessageBox::No);
-        if (confirmation == QMessageBox::YesToAll) {
-            request_confirmation = false;
-            yes = true;
-        } else if (confirmation == QMessageBox::Yes) {
-            yes = true;
-        }
+bool MainWindow::deleteOneSelected(QString const &file_name, QString const &message, QMessageBox::StandardButton &request_confirmation) {
+    if (request_confirmation != QMessageBox::YesToAll && request_confirmation != QMessageBox::NoToAll) {
+        request_confirmation = QMessageBox::warning(this, "Delete", message,
+                                                    QMessageBox::YesAll | QMessageBox::NoToAll | QMessageBox::Yes | QMessageBox::No);
     }
 
-    if (yes && QFile(file_name).remove()) {
-        return true;
-    } else {
-        receiveError(QString("can't delete file %1").arg(file_name));
-        return !yes;
+    bool success = false;
+    if (request_confirmation == QMessageBox::YesAll || request_confirmation == QMessageBox::Yes) {
+        success = QFile(file_name).remove();
+        if (!success) {
+            receiveError(QString("can't delete file %1").arg(file_name));
+        }
     }
+    return success;
 }
 
 void MainWindow::deleteSelected() {
-    bool request_confirmation = true;
+    QMessageBox::StandardButton request_confirmation = QMessageBox::Cancel;
 
     auto selected_items = ui->treeWidget->selectedItems();
     for (auto &item : selected_items) {
         if (!item->isDisabled()) {
             if (item->childCount() != 0) {
                 for (int c = 1; c < item->childCount(); c++) {
-                    if (deleteOneSelected(item->child(c)->text(0), request_confirmation)) {
+                    if (deleteOneSelected(item->child(c)->text(0), QString("Delete file %1?").arg(item->child(c)->text(0)), request_confirmation)) {
                         item->child(c)->setDisabled(true);
                     }
                 }
             } else {
-                if (deleteOneSelected(item->text(0), request_confirmation)) {
+                if (deleteOneSelected(item->text(0), QString("Delete file %1?").arg(item->text(0)), request_confirmation)) {
                     item->setDisabled(true);
                 }
             }

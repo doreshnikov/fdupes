@@ -17,7 +17,7 @@ namespace Ui {
 class MainWindow : public QMainWindow {
     Q_OBJECT
 
-    bool deleteOneSelected(QString const &, bool &);
+    bool deleteOneSelected(QString const &, QString const &, QMessageBox::StandardButton &);
 
 public:
 
