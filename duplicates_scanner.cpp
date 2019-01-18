@@ -84,19 +84,21 @@ void duplicates_scanner::startScanning() {
             file.close();
 
             if (origins.contains(hash)) {
+                bool found = false;
                 for (auto const &origin : origins[hash]) {
                     if (files_are_equal(origin, file_name)) {
                         duplicates[origin].append(file_name);
+                        found = true;
                         break;
                     }
                 }
-            } else {
-                if (!origins.contains(hash)) {
-                    origins.insert(hash, QVector<QString>());
+                if (!found) {
+                    origins[hash].append(file_name);
+                    duplicates.insert(file_name, QVector<QString>{file_name});
                 }
-                origins[hash].append(file_name);
-                duplicates.insert(file_name, QVector<QString>());
-                duplicates[file_name].append(file_name);
+            } else {
+                origins.insert(hash, QVector<QString>{file_name});
+                duplicates.insert(file_name, QVector<QString>{file_name});
             }
 
             emit onFileProcessed(file_name);
