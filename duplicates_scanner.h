@@ -10,6 +10,8 @@ class duplicates_scanner : public QObject {
 
 public:
 
+    static const quint32 BUFFER_SIZE = 1024 * 1024;
+
     explicit duplicates_scanner(QString const &);
     ~duplicates_scanner();
 

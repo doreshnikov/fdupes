@@ -23,13 +23,13 @@ bool duplicates_scanner::files_are_equal(const QString &origin, const QString &o
         return false;
     }
 
-    QByteArray buffer1(256, 0), buffer2(256, 0);
+    QByteArray buffer1(BUFFER_SIZE, 0), buffer2(BUFFER_SIZE, 0);
     while (!f1.atEnd()) {
         if (QThread::currentThread()->isInterruptionRequested()) {
             return false;
         }
-        f1.read(buffer1.data(), 256);
-        f2.read(buffer2.data(), 256);
+        f1.read(buffer1.data(), BUFFER_SIZE);
+        f2.read(buffer2.data(), BUFFER_SIZE);
         if (buffer1 != buffer2) {
             return false;
         }
