@@ -18,11 +18,13 @@ class test : public QObject {
 
 public:
 
+    static qint64 now();
+
     test(QString const &);
     virtual ~test();
 
     virtual void generate() = 0;
-    void clean();
+    virtual void clean();
 
     QString get_name() const;
     QString get_dir() const;
@@ -53,14 +55,32 @@ class script_test : public test {
 
 public:
 
-    script_test(QString const &name, std::string const &script_path);
+    script_test(QString const &, std::string const &);
     ~script_test();
+
+    void generate() override;
+    void clean() override;
+
+private:
+
+    std::string _script_path;
+    qint64 _time;
+
+};
+
+class subdirectory_test : public test {
+
+public:
+
+    subdirectory_test(QString const &, std::size_t, std::initializer_list<QString> const &);
+    ~subdirectory_test();
 
     void generate() override;
 
 private:
 
-    std::string _script_path;
+    QVector<QString> _files_data;
+    std::size_t _depth;
 
 };
 

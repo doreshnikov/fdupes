@@ -1,5 +1,6 @@
 #include <iostream>
 #include <algorithm>
+#include <chrono>
 
 #include <QCoreApplication>
 #include <QtDebug>
@@ -29,6 +30,10 @@ QString
 
 }
 
+qint64 test::now() {
+    return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+}
+
 test::test(QString const &name) : _name(name), _dir(DIR) {
     _dir.mkdir(_name);
     _dir = QDir(_dir.filePath(_name));
@@ -56,7 +61,6 @@ basic_test::~basic_test() {}
 void basic_test::generate() {
     qDebug().noquote() << QString("[Generating  %1 ...]").arg(_name);
 
-    QDir::current().mkdir(DIR);
     std::size_t id = 0;
     for (auto const &file_data : _files_data) {
         QFile file(_dir.filePath(QString::number(id++)));
@@ -71,8 +75,38 @@ script_test::script_test(QString const &name, std::string const &script_path) : 
 script_test::~script_test() {}
 
 void script_test::generate() {
-    qDebug().noquote() << QString("[Generating %1 ...]").arg(_name);
-    system(_script_path.data());
+    qDebug().noquote() << QString("[Running script %1 ...]").arg(_name);
+    _dir = QDir(QDir(QCoreApplication::applicationDirPath()).filePath(QString("%1test").arg(QString::fromStdString(_script_path))));
+    system((QDir(QCoreApplication::applicationDirPath()).filePath(_script_path.data()).toStdString() + " >/dev/null 2>/dev/null").data());
+    _time = test::now();
+}
+
+void script_test::clean() {
+    qDebug().noquote() << QString("    - time: %1ms").arg(test::now() - _time);
+    _dir.removeRecursively();
+    QDir(_dir.filePath("..")).rmdir(_dir.dirName());
+}
+
+subdirectory_test::subdirectory_test(const QString &name, std::size_t depth, const std::initializer_list<QString> &list) : test(name), _depth(depth), _files_data(list) {}
+
+subdirectory_test::~subdirectory_test() {}
+
+void subdirectory_test::generate() {
+    qDebug().noquote() << QString("[Generating subdirectories %1 ...]").arg(_name);
+
+    QDir root = _dir;
+    std::size_t id = 0;
+    for (auto const &file_data : _files_data) {
+        for (std::size_t d = 0; d <= _depth; d++) {
+            QFile file(_dir.filePath(QString::number(id++)));
+            if (file.open(QFile::ReadWrite)) {
+                file.write(file_data.toUtf8());
+            }
+            _dir.mkdir(QString::number(id));
+            _dir = QDir(_dir.filePath(QString::number(id++)));
+        }
+        _dir = root;
+    }
 }
 
 duplicates_scanner_tester::duplicates_scanner_tester() : _scanner(nullptr), _workerThread(nullptr), _test_id(0),  _bucket_sizes(), _errors(), _success(0) {}
@@ -180,6 +214,28 @@ int main(int argc, char *argv[]) {
     tester.add_test(
         new basic_test("256+ symbols", {a256, b256, b256, b256, a256b, a256c, a257, a256c, a257}),
         {2, 2, 3},
+        {}
+    );
+    tester.add_test(
+        new basic_test("Random trash", {rnd1, rnd2, rnd3, rnd4, rnd1, rnd2, rnd4, rnd2, rnd4, rnd2}),
+        {2, 3, 4},
+        {}
+    );
+
+    tester.add_test(
+        new subdirectory_test("One file", 9, {rnd4}),
+        {10},
+        {}
+    );
+    tester.add_test(
+        new subdirectory_test("4 files, deep", 99, {empty, rnd2, rnd2, rnd4}),
+        {100, 100, 200},
+        {}
+    );
+
+    tester.add_test(
+        new script_test("300 diff files, 2Kb", "300diff"),
+        {},
         {}
     );
 

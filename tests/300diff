@@ -1,0 +1,5 @@
+#!/bin/bash
+
+mkdir 300difftest >/dev/null
+cd 300difftest >/dev/null
+for i in {1..300}; do dd if=/dev/urandom of=$i bs=4096 count=1 >out.log 2>err.log; done;
