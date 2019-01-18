@@ -1,17 +1,22 @@
 CMakeCache.txt
 CMakeFiles/
 Makefile
+tests/Makefile
 
 *.o
 moc_*
 fdupes.pro.*
 fdupes_automoc.cpp
 ui_mainwindow.h
-test/
+tests/moc_*
+tests/tests.pro.*
 
 fdupes
-fdupes-debug/
+fdupes.exe
+tests/tests
+tests/tests.exe
 fdupes_autogen/
+tests/tests_autogen/
 cmake_install.cmake
 
 .git/
