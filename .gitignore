@@ -15,7 +15,9 @@ fdupes
 fdupes.exe
 tests/tests
 tests/tests.exe
+tests/tmp/
 fdupes_autogen/
+tests_autogen/
 tests/tests_autogen/
 cmake_install.cmake
 

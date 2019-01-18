@@ -65,7 +65,7 @@ void duplicates_scanner::startScanning() {
             continue;
         }
 
-        QHash<QByteArray, QString> origins;
+        QHash<QByteArray, QVector<QString>> origins;
         QHash<QString, QVector<QString>> duplicates;
         for (auto const &file_name : bucket) {
             if (QThread::currentThread()->isInterruptionRequested()) {
@@ -83,10 +83,18 @@ void duplicates_scanner::startScanning() {
             file.read(hash.data(), 256);
             file.close();
 
-            if (origins.contains(hash) && files_are_equal(origins[hash], file_name)) {
-                duplicates[origins[hash]].append(file_name);
+            if (origins.contains(hash)) {
+                for (auto const &origin : origins[hash]) {
+                    if (files_are_equal(origin, file_name)) {
+                        duplicates[origin].append(file_name);
+                        break;
+                    }
+                }
             } else {
-                origins.insert(hash, file_name);
+                if (!origins.contains(hash)) {
+                    origins.insert(hash, QVector<QString>());
+                }
+                origins[hash].append(file_name);
                 duplicates.insert(file_name, QVector<QString>());
                 duplicates[file_name].append(file_name);
             }

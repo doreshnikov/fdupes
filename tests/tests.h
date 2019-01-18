@@ -3,6 +3,7 @@
 
 #include <initializer_list>
 #include <string>
+#include <memory>
 
 #include <QObject>
 #include <QString>
@@ -20,7 +21,11 @@ public:
     test(QString const &);
     virtual ~test();
 
-    virtual void generate() const = 0;
+    virtual void generate() = 0;
+    void clean();
+
+    QString get_name() const;
+    QString get_dir() const;
 
 protected:
 
@@ -36,7 +41,7 @@ public:
     basic_test(QString const &, std::initializer_list<QString> const &);
     ~basic_test();
 
-    void generate() const override;
+    void generate() override;
 
 private:
 
@@ -51,7 +56,7 @@ public:
     script_test(QString const &name, std::string const &script_path);
     ~script_test();
 
-    void generate() const override;
+    void generate() override;
 
 private:
 
@@ -67,34 +72,38 @@ public:
     duplicates_scanner_tester();
     ~duplicates_scanner_tester();
 
-    void add_test(test const &, std::initializer_list<int> const &, std::initializer_list<QString> const &);
+    void add_test(test *, std::initializer_list<int> const &, std::initializer_list<QString> const &);
     void run_all();
+
+signals:
+
+    void onComplete();
 
 public slots:
 
     void receiveDuplicatesBucket(QVector<QString> const &);
     void receiveError(QString const &);
 
-    void checkTest();
-
 private:
 
     struct full_test {
-        test const &t;
-        QSet<int> bucket_sizes;
-        QSet<QString> errors;
+        std::shared_ptr<test> _t;
+        QVector<int> _bucket_sizes;
+        QSet<QString> _errors;
 
         full_test();
-        full_test(test const &t, QSet<int> const &, QSet<QString> const &);
+        full_test(test *, QVector<int> const &, QSet<QString> const &);
         ~full_test();
+
+        full_test(full_test const &other);
     };
 
     duplicates_scanner *_scanner;
     QThread *_workerThread;
 
     QVector<full_test> _tests;
-    std::size_t _test_id;
-    QSet<int> _bucket_sizes;
+    int _test_id;
+    QVector<int> _bucket_sizes;
     QSet<QString> _errors;
 
     std::size_t _success;

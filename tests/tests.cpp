@@ -1,4 +1,5 @@
 #include <iostream>
+#include <algorithm>
 
 #include <QCoreApplication>
 #include <QtDebug>
@@ -8,17 +9,16 @@
 namespace {
 
 QString
-    DIR = "./tmp",
+    DIR = "tmp",
 
     empty = "",
     a1 = "a",
     b1 = "b",
-    zero1 = "\0",
 
     a256 = QString("a").repeated(256),
     b256 = QString("b").repeated(256),
-    zero256 = QString("\0").repeated(256),
 
+    a257 = a256 + "a",
     a256b = a256 + "b",
     a256c = a256 + "c",
 
@@ -29,21 +29,32 @@ QString
 
 }
 
-test::test(QString const &name) : _name(name), _dir(QDir::currentPath()) {
-    _dir.mkdir(DIR);
-    _dir = QDir(_dir.filePath(DIR));
+test::test(QString const &name) : _name(name), _dir(DIR) {
+    _dir.mkdir(_name);
+    _dir = QDir(_dir.filePath(_name));
 }
 
-test::~test() {
-    QDir(_dir.filePath("..")).rmdir(DIR);
+test::~test() {}
+
+void test::clean() {
+    _dir.removeRecursively();
+    QDir(_dir.filePath("..")).rmdir(_name);
+}
+
+QString test::get_name() const {
+    return _name;
+}
+
+QString test::get_dir() const {
+    return _dir.dirName();
 }
 
 basic_test::basic_test(QString const &name, std::initializer_list<QString> const &list) : test(name), _files_data(list) {}
 
 basic_test::~basic_test() {}
 
-void basic_test::generate() const {
-    qDebug() << QString("[Generating  %1 ...]").arg(_name);
+void basic_test::generate() {
+    qDebug().noquote() << QString("[Generating  %1 ...]").arg(_name);
 
     QDir::current().mkdir(DIR);
     std::size_t id = 0;
@@ -59,26 +70,12 @@ script_test::script_test(QString const &name, std::string const &script_path) : 
 
 script_test::~script_test() {}
 
-void script_test::generate() const {
-    qDebug() << QString("[Generating %1 ...]").arg(_name);
+void script_test::generate() {
+    qDebug().noquote() << QString("[Generating %1 ...]").arg(_name);
     system(_script_path.data());
 }
 
-duplicates_scanner_tester::duplicates_scanner_tester() : _scanner(nullptr), _workerThread(nullptr), _test_id(0),  _bucket_sizes(), _errors(), _success(0) {
-    std::cout << "weeeee\n";
-    _scanner = new duplicates_scanner(DIR);
-    _workerThread = new QThread();
-    _scanner->moveToThread(_workerThread);
-
-    connect(_scanner, &duplicates_scanner::onDuplicatesBucketFound,
-            this, &duplicates_scanner_tester::receiveDuplicatesBucket);
-    connect(_scanner, &duplicates_scanner::onError,
-            this, &duplicates_scanner_tester::receiveError);
-    connect(_scanner, &duplicates_scanner::onComplete,
-            this, &duplicates_scanner_tester::checkTest);
-
-    _workerThread->start();
-}
+duplicates_scanner_tester::duplicates_scanner_tester() : _scanner(nullptr), _workerThread(nullptr), _test_id(0),  _bucket_sizes(), _errors(), _success(0) {}
 
 duplicates_scanner_tester::~duplicates_scanner_tester() {
     _workerThread->requestInterruption();
@@ -87,16 +84,18 @@ duplicates_scanner_tester::~duplicates_scanner_tester() {
     delete _scanner;
 }
 
-duplicates_scanner_tester::full_test::full_test() : t(std::move(basic_test("empty", {}))), bucket_sizes(), errors() {}
+duplicates_scanner_tester::full_test::full_test() : _t(nullptr), _bucket_sizes(), _errors() {}
 
-duplicates_scanner_tester::full_test::full_test(const test &t, QSet<int> const &bucket_sizes, QSet<QString> const &errors) : t(t), bucket_sizes(bucket_sizes), errors(errors) {}
+duplicates_scanner_tester::full_test::full_test(test *t, QVector<int> const &bucket_sizes, QSet<QString> const &errors) : _t(t), _bucket_sizes(bucket_sizes), _errors(errors) {}
 
 duplicates_scanner_tester::full_test::~full_test() {}
 
-void duplicates_scanner_tester::add_test(const test &t, std::initializer_list<int> const &expect, std::initializer_list<QString> const &error) {
-    QSet<int> bucket_sizes;
+duplicates_scanner_tester::full_test::full_test(const full_test &other) : _t(other._t), _bucket_sizes(other._bucket_sizes), _errors(other._errors) {}
+
+void duplicates_scanner_tester::add_test(test *t, std::initializer_list<int> const &expect, std::initializer_list<QString> const &error) {
+    QVector<int> bucket_sizes;
     for (int size : expect) {
-        bucket_sizes.insert(size);
+        bucket_sizes.append(size);
     }
     QSet<QString> errors;
     for (auto const &e : error) {
@@ -106,46 +105,88 @@ void duplicates_scanner_tester::add_test(const test &t, std::initializer_list<in
 }
 
 void duplicates_scanner_tester::run_all() {
-    _test_id = -1;
-    checkTest();
+    for (_test_id = 0; _test_id < _tests.size(); _test_id++) {
+        std::shared_ptr<test> t = _tests[_test_id]._t;
+
+        _scanner = new duplicates_scanner(QDir(DIR).filePath(t->get_dir()));
+        _workerThread = new QThread();
+        _scanner->moveToThread(_workerThread);
+        connect(_scanner, &duplicates_scanner::onDuplicatesBucketFound,
+                this, &duplicates_scanner_tester::receiveDuplicatesBucket);
+        connect(_scanner, &duplicates_scanner::onError,
+                this, &duplicates_scanner_tester::receiveError);
+        connect(_scanner, &duplicates_scanner::onComplete,
+                _workerThread, &QThread::quit);
+        _workerThread->start();
+
+        t->generate();
+        _scanner->startScanning();
+        _workerThread->wait();
+
+        QDebug debug = qDebug().noquote();
+        std::sort(_bucket_sizes.begin(), _bucket_sizes.end());
+        if ((_bucket_sizes == _tests[_test_id]._bucket_sizes) && (_errors == _tests[_test_id]._errors)) {
+            debug << "[+] Test passed";
+            _success++;
+        } else {
+            debug << "[-] Test failed, got:";
+            debug << "\n    - bs:";
+            for (int amount :_bucket_sizes) {
+                debug << QString::number(amount);
+            }
+            debug << QString("\n    - er: %1").arg(_errors.size());
+        }
+
+        t->clean();
+        _bucket_sizes.clear();
+        _errors.clear();
+        delete _scanner;
+        delete _workerThread;
+    }
+
+    qDebug().noquote() << QString("=").repeated(15) << QString("\nPassed: %1/%2").arg(QString::number(_success)).arg(QString::number(_tests.size()));
+    emit onComplete();
 }
 
 void duplicates_scanner_tester::receiveDuplicatesBucket(const QVector<QString> &bucket) {
-    _bucket_sizes.insert(bucket.size());
+    _bucket_sizes.append(bucket.size());
 }
 
 void duplicates_scanner_tester::receiveError(const QString &error) {
     _errors.insert(error);
 }
 
-void duplicates_scanner_tester::checkTest() {
-    if (0 <= _test_id && _test_id < _tests.size()) {
-        if ((_bucket_sizes == _tests[_test_id].bucket_sizes) && (_errors == _tests[_test_id].errors)) {
-            qDebug() << "[+] Test passed\n";
-            _success++;
-        } else {
-            qDebug() << "[-] Test failed\n";
-        }
-    }
-    _test_id++;
-    if (_test_id < _tests.size()) {
-        _tests[_test_id].t.generate();
-        _scanner->startScanning();
-    } else {
-        qDebug() << QString("=").repeated(15) << QString("Passed: %1/%2").arg(QString::number(_success)).arg(QString::number(_tests.size()));
-    }
-}
-
 int main(int argc, char *argv[]) {
 
     QCoreApplication a(argc, argv);
     duplicates_scanner_tester tester;
+    QDir::current().mkdir(DIR);
+
     tester.add_test(
-        basic_test("Empty x2", {empty, empty}),
+        new basic_test("No files", {}),
+        {},
+        {}
+    );
+    tester.add_test(
+        new basic_test("Empty x2", {empty, empty}),
         {2},
         {}
     );
+    tester.add_test(
+        new basic_test("Empty x2, a1 x3, b1 x4", {empty, empty, a1, a1, a1, b1, b1, b1, b1, rnd1, rnd1, rnd2, rnd3, rnd4}),
+        {2, 2, 3, 4},
+        {}
+    );
+    tester.add_test(
+        new basic_test("256+ symbols", {a256, b256, b256, b256, a256b, a256c, a257, a256c, a257}),
+        {2, 2, 3},
+        {}
+    );
 
+    QObject::connect(&tester, &duplicates_scanner_tester::onComplete,
+                     &a, &QCoreApplication::quit);
+    tester.run_all();
+    QDir::current().rmdir(DIR);
     return a.exec();
 
 }
