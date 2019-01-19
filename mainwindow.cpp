@@ -88,7 +88,7 @@ void MainWindow::showAboutDialog() {
 void MainWindow::onCounted(int amount, qint64 size) {
     ui->plainTextEdit->appendPlainText(QString("%1\nActual size:\n%2B").arg(amount).arg(size));
     ui->progressBar->setValue(0);
-    ui->progressBar->setMaximum(amount);
+    ui->progressBar->setMaximum(amount == 0 ? 1 : amount);
 
     interruptWorker();
 
