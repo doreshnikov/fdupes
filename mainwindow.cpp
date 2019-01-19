@@ -78,6 +78,9 @@ void MainWindow::selectDirectory() {
     connect(_workerThread, &QThread::finished,
             counter, &QObject::deleteLater);
 
+    ui->button_Start_Scanning->setDisabled(true);
+    ui->button_Start_Scanning->repaint();
+
     _workerThread->start();
 }
 
