@@ -109,6 +109,30 @@ void subdirectory_test::generate() {
     }
 }
 
+error_test::error_test(const QString &name, const std::initializer_list<QString> &allow, const std::initializer_list<QString> &forbid) : test(name), _allowed_data(allow), _forbidden_data(forbid) {}
+
+error_test::~error_test() {}
+
+void error_test::generate() {
+    qDebug().noquote() << QString("[Generating with `chmod -r` %1 ...]").arg(_name);
+
+    std::size_t id = 0;
+
+    for (auto const &file_data : _allowed_data) {
+        QFile file(_dir.filePath(QString::number(id++)));
+        if (file.open(QFile::ReadWrite)) {
+            file.write(file_data.toUtf8());
+        }
+    }
+    for (auto const &file_data : _forbidden_data) {
+        QFile file(_dir.filePath(QString::number(id++)));
+        if (file.open(QFile::ReadWrite)) {
+            file.write(file_data.toUtf8());
+            file.setPermissions(0);
+        }
+    }
+}
+
 duplicates_scanner_tester::duplicates_scanner_tester() : _scanner(nullptr), _workerThread(nullptr), _test_id(0),  _bucket_sizes(), _errors(), _success(0) {}
 
 duplicates_scanner_tester::~duplicates_scanner_tester() {
@@ -120,20 +144,16 @@ duplicates_scanner_tester::~duplicates_scanner_tester() {
 
 duplicates_scanner_tester::full_test::full_test() : _t(nullptr), _bucket_sizes(), _errors() {}
 
-duplicates_scanner_tester::full_test::full_test(test *t, QVector<int> const &bucket_sizes, QSet<QString> const &errors) : _t(t), _bucket_sizes(bucket_sizes), _errors(errors) {}
+duplicates_scanner_tester::full_test::full_test(test *t, QVector<int> const &bucket_sizes, int errors) : _t(t), _bucket_sizes(bucket_sizes), _errors(errors) {}
 
 duplicates_scanner_tester::full_test::~full_test() {}
 
 duplicates_scanner_tester::full_test::full_test(const full_test &other) : _t(other._t), _bucket_sizes(other._bucket_sizes), _errors(other._errors) {}
 
-void duplicates_scanner_tester::add_test(test *t, std::initializer_list<int> const &expect, std::initializer_list<QString> const &error) {
+void duplicates_scanner_tester::add_test(test *t, std::initializer_list<int> const &expect, int errors) {
     QVector<int> bucket_sizes;
     for (int size : expect) {
         bucket_sizes.append(size);
-    }
-    QSet<QString> errors;
-    for (auto const &e : error) {
-        errors.insert(e);
     }
     _tests.append(full_test(t, bucket_sizes, errors));
 }
@@ -159,7 +179,7 @@ void duplicates_scanner_tester::run_all() {
 
         QDebug debug = qDebug().noquote();
         std::sort(_bucket_sizes.begin(), _bucket_sizes.end());
-        if ((_bucket_sizes == _tests[_test_id]._bucket_sizes) && (_errors == _tests[_test_id]._errors)) {
+        if ((_bucket_sizes == _tests[_test_id]._bucket_sizes) && (_errors.size() == _tests[_test_id]._errors)) {
             debug << "[+] Test passed";
             _success++;
         } else {
@@ -199,44 +219,56 @@ int main(int argc, char *argv[]) {
     tester.add_test(
         new basic_test("No files", {}),
         {},
-        {}
+        0
     );
     tester.add_test(
         new basic_test("Empty x2", {empty, empty}),
         {2},
-        {}
+        0
     );
     tester.add_test(
         new basic_test("Empty x2, a1 x3, b1 x4", {empty, empty, a1, a1, a1, b1, b1, b1, b1, rnd1, rnd1, rnd2, rnd3, rnd4}),
         {2, 2, 3, 4},
-        {}
+        0
     );
     tester.add_test(
         new basic_test("256+ symbols", {a256, b256, b256, b256, a256b, a256c, a257, a256c, a257}),
         {2, 2, 3},
-        {}
+        0
     );
     tester.add_test(
         new basic_test("Random trash", {rnd1, rnd2, rnd3, rnd4, rnd1, rnd2, rnd4, rnd2, rnd4, rnd2}),
         {2, 3, 4},
-        {}
-    );
-
-    tester.add_test(
-        new subdirectory_test("One file", 9, {rnd4}),
-        {10},
-        {}
-    );
-    tester.add_test(
-        new subdirectory_test("4 files, deep", 99, {empty, rnd2, rnd2, rnd4}),
-        {100, 100, 200},
-        {}
+        0
     );
 
     tester.add_test(
         new script_test("300 diff files, 2Kb", "300diff"),
         {},
-        {}
+        0
+    );
+
+    tester.add_test(
+        new subdirectory_test("One file", 9, {rnd4}),
+        {10},
+        0
+    );
+    tester.add_test(
+        new subdirectory_test("4 files, deep", 99, {empty, rnd2, rnd2, rnd4}),
+        {100, 100, 200},
+        0
+    );
+
+    tester.add_test(
+        new error_test("Forbidden No copies", {}, {empty, empty, rnd1, a256c, a257}),
+        {},
+        4
+    );
+
+    tester.add_test(
+        new error_test("Forbidden Copies", {empty, empty, rnd4, rnd3, rnd2, rnd2, rnd2}, {empty, rnd3}),
+        {2, 3},
+        2
     );
 
     QObject::connect(&tester, &duplicates_scanner_tester::onComplete,

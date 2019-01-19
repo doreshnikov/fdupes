@@ -84,6 +84,22 @@ private:
 
 };
 
+class error_test : public test {
+
+public:
+
+    error_test(QString const &, std::initializer_list<QString> const &, std::initializer_list<QString> const &);
+    ~error_test();
+
+    void generate() override;
+
+private:
+
+    QVector<QString> _allowed_data;
+    QVector<QString> _forbidden_data;
+
+};
+
 class duplicates_scanner_tester : public QObject {
     Q_OBJECT
 
@@ -92,7 +108,7 @@ public:
     duplicates_scanner_tester();
     ~duplicates_scanner_tester();
 
-    void add_test(test *, std::initializer_list<int> const &, std::initializer_list<QString> const &);
+    void add_test(test *, std::initializer_list<int> const &, int);
     void run_all();
 
 signals:
@@ -109,10 +125,10 @@ private:
     struct full_test {
         std::shared_ptr<test> _t;
         QVector<int> _bucket_sizes;
-        QSet<QString> _errors;
+        int _errors;
 
         full_test();
-        full_test(test *, QVector<int> const &, QSet<QString> const &);
+        full_test(test *, QVector<int> const &, int);
         ~full_test();
 
         full_test(full_test const &other);
