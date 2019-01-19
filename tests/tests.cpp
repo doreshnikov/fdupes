@@ -264,7 +264,6 @@ int main(int argc, char *argv[]) {
         {},
         4
     );
-
     tester.add_test(
         new error_test("Forbidden Copies", {empty, empty, rnd4, rnd3, rnd2, rnd2, rnd2}, {empty, rnd3}),
         {2, 3},
