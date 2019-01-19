@@ -22,7 +22,7 @@ signals:
     void onFileProcessed(QString const &);
     void onDuplicatesBucketFound(QVector<QString> const &);
 
-    void onError(QString const &);
+    void onError(QString);
 
     void onComplete();
 
